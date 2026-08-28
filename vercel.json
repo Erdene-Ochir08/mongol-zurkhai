@@ -1,0 +1,17 @@
+﻿{
+  "version": 2,
+  "rewrites": [
+    {
+      "source": "/api/qpay/create-invoice",
+      "destination": "/api/qpay/create-invoice.js"
+    },
+    {
+      "source": "/api/qpay/check-payment",
+      "destination": "/api/qpay/check-payment.js"
+    },
+    {
+      "source": "/api/qpay/callback",
+      "destination": "/api/qpay/callback.js"
+    }
+  ]
+}
