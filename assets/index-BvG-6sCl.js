@@ -230,4 +230,36 @@ ${M.analysis}
 • Биедээ авч явах эд зүйл: Төмөр, мөнгөн эдлэл эсвэл чонын дүрстэй жижиг сахиус нь хар хэл ам, атаархлыг хаана.
 • Цээрлэх зүйл: Архи дарс, шөнийн цагаар чухал шийдвэр гаргах, худлаа ярьдаг хүнтэй маргах зэргээс хатуу зайлсхий.`},{subtitle:"3. Өвгөн бөөгийн эцсийн хувийн захиас & Тангараг",body:`“${v.name}, өөрийнхөө дотоод дуу хоолойг хэзээ ч бүү үгүйсгэ. Чиний анхны мэдрэмж үргэлж зөв байдаг. Бусдын шүүмжлэлд бөхийхгүй, өөрийн зорилгодоо үнэнч явбал Тэнгэр газар чамайг хэзээ ч орхихгүй. 
 
-Өөртөө итгэж, өөрийн амьдралын жинхэнэ эзэн бол.”`}],summaryVerdict:"Тэнгэр чамайг түшиж байна. Өөрийгөө дутуу үнэлэхээ зогсоож, заяагаа тэгшил."}];return{id:`reading_${Date.now()}`,createdAt:Date.now(),profile:v,archetype:p,lifeCyclePhases:p.lifeCyclePhases,shagaiOutcome:o,chapters:U}}function ph(){const[v,A]=W.useState("hero"),[p,o]=W.useState(null),[E,D]=W.useState(null),[G,X]=W.useState(!1);W.useEffect(()=>{try{localStorage.removeItem("zurkhai_paid");const ee=localStorage.getItem("zurkhai_profile");if(ee){const re=JSON.parse(ee),Se=isProfilePaid(re);o(re),X(Se);const F=gf(re,Se);D(F)}}catch{}},[]);const U=()=>{A("doorway")},z=()=>{A("shaman")},Y=ee=>{o(ee),localStorage.setItem("zurkhai_profile",JSON.stringify(ee));const Se=isProfilePaid(ee);X(Se);const re=gf(ee,Se);D(re),A("juniper")},M=()=>{A("shagai")},x=()=>{p&&(X(isProfilePaid(p)),D(gf(p,isProfilePaid(p)))),A("reader")},he=()=>{if(p){markProfilePaid(p),X(!0);const ee=gf(p,!0);D(ee)}},ge=()=>{localStorage.removeItem("zurkhai_profile"),o(null),D(null),X(!1),A("hero")};return c.jsxs("div",{className:"relative min-h-screen bg-black text-[#f6e7c7] selection:bg-amber-500/30 selection:text-white font-sans antialiased overflow-x-hidden",children:[c.jsx(yh,{}),c.jsxs("div",{className:"relative z-10 w-full min-h-screen",children:[v==="hero"&&c.jsx(fh,{onStart:U}),v==="doorway"&&c.jsx(sh,{onComplete:z,onBack:()=>A("hero")}),v==="shaman"&&c.jsx(rh,{initialProfile:p,onSubmit:Y,onBack:()=>A("hero")}),v==="juniper"&&p&&c.jsx(oh,{profile:p,onContinue:M,onBack:()=>A("shaman")}),v==="shagai"&&p&&E&&c.jsx(mh,{profile:p,shagaiOutcome:E.shagaiOutcome,onComplete:x,onBack:()=>A("juniper")}),v==="reader"&&E&&c.jsx(hh,{reading:E,isPaid:G,onPaySuccess:he,onReset:ge,onEdit:()=>A("shaman")})]})]})}const w0=document.getElementById("root");w0&&Ab.createRoot(w0).render(c.jsx(gb.StrictMode,{children:c.jsx(ph,{})}));
+Өөртөө итгэж, өөрийн амьдралын жинхэнэ эзэн бол.”`}],summaryVerdict:"Тэнгэр чамайг түшиж байна. Өөрийгөө дутуу үнэлэхээ зогсоож, заяагаа тэгшил."}];return{id:`reading_${Date.now()}`,createdAt:Date.now(),profile:v,archetype:p,lifeCyclePhases:p.lifeCyclePhases,shagaiOutcome:o,chapters:U}}
+function getProfileKey(v) {
+  if (!v) return "";
+  const A = (v.name || "").trim().toLowerCase();
+  const p = (v.birthDate || "").trim();
+  const o = (v.gender || "").trim().toLowerCase();
+  return "zurkhai_paid_" + A + "_" + p + "_" + o;
+}
+function isProfilePaid(v) {
+  if (!v) return false;
+  const A = getProfileKey(v);
+  try {
+    if (localStorage.getItem(A) === "true") return true;
+    const p = JSON.parse(localStorage.getItem("zurkhai_unlocked_profiles") || "[]");
+    return Array.isArray(p) && p.includes(A);
+  } catch (e) {
+    return false;
+  }
+}
+function markProfilePaid(v) {
+  if (!v) return;
+  const A = getProfileKey(v);
+  try {
+    localStorage.setItem(A, "true");
+    const p = JSON.parse(localStorage.getItem("zurkhai_unlocked_profiles") || "[]");
+    if (!p.includes(A)) {
+      p.push(A);
+      localStorage.setItem("zurkhai_unlocked_profiles", JSON.stringify(p));
+    }
+  } catch (e) {}
+}
+
+function ph(){const[v,A]=W.useState("hero"),[p,o]=W.useState(null),[E,D]=W.useState(null),[G,X]=W.useState(!1);W.useEffect(()=>{try{localStorage.removeItem("zurkhai_paid");const ee=localStorage.getItem("zurkhai_profile");if(ee){const re=JSON.parse(ee),Se=isProfilePaid(re);o(re),X(Se);const F=gf(re,Se);D(F)}}catch{}},[]);const U=()=>{A("doorway")},z=()=>{A("shaman")},Y=ee=>{o(ee),localStorage.setItem("zurkhai_profile",JSON.stringify(ee));const Se=isProfilePaid(ee);X(Se);const re=gf(ee,Se);D(re),A("juniper")},M=()=>{A("shagai")},x=()=>{p&&(X(isProfilePaid(p)),D(gf(p,isProfilePaid(p)))),A("reader")},he=()=>{if(p){markProfilePaid(p),X(!0);const ee=gf(p,!0);D(ee)}},ge=()=>{localStorage.removeItem("zurkhai_profile"),o(null),D(null),X(!1),A("hero")};return c.jsxs("div",{className:"relative min-h-screen bg-black text-[#f6e7c7] selection:bg-amber-500/30 selection:text-white font-sans antialiased overflow-x-hidden",children:[c.jsx(yh,{}),c.jsxs("div",{className:"relative z-10 w-full min-h-screen",children:[v==="hero"&&c.jsx(fh,{onStart:U}),v==="doorway"&&c.jsx(sh,{onComplete:z,onBack:()=>A("hero")}),v==="shaman"&&c.jsx(rh,{initialProfile:p,onSubmit:Y,onBack:()=>A("hero")}),v==="juniper"&&p&&c.jsx(oh,{profile:p,onContinue:M,onBack:()=>A("shaman")}),v==="shagai"&&p&&E&&c.jsx(mh,{profile:p,shagaiOutcome:E.shagaiOutcome,onComplete:x,onBack:()=>A("juniper")}),v==="reader"&&E&&c.jsx(hh,{reading:E,isPaid:G,onPaySuccess:he,onReset:ge,onEdit:()=>A("shaman")})]})]})}const w0=document.getElementById("root");w0&&Ab.createRoot(w0).render(c.jsx(gb.StrictMode,{children:c.jsx(ph,{})}));
