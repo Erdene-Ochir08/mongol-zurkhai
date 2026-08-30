@@ -1,4 +1,4 @@
-﻿import { getStats } from './store.js';
+﻿import { getStats, saveCloudData } from './store.js';
 import { getQPayToken, getQPayBaseUrl } from '../qpay/utils.js';
 
 const DEFAULT_ADMIN_PASSWORD = 'zurkhai2026!';
@@ -47,56 +47,54 @@ export default async function handler(req, res) {
 
     let visits = [...(raw.visits || [])];
     let transactions = [...(raw.transactions || [])];
+    let dbUpdated = false;
 
-    // Query real QPay bank ledger directly if credentials exist
-    let isQPayLive = false;
-    if (process.env.QPAY_PASSWORD) {
+    // Automatic QPay Payment Reconciliation: Check all PENDING invoices directly with QPay Bank API
+    if (process.env.QPAY_PASSWORD && transactions.length > 0) {
       try {
         const qToken = await getQPayToken();
         const baseUrl = getQPayBaseUrl();
-        const qRes = await fetch(`${baseUrl}/v2/payment/list`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${qToken}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            object_type: 'INVOICE',
-            offset: { page_number: 1, page_limit: 100 }
-          })
-        });
-        if (qRes.ok) {
-          const qData = await qRes.json();
-          isQPayLive = true;
-          if (qData.rows && Array.isArray(qData.rows)) {
-            qData.rows.forEach(row => {
-              const existing = transactions.find(t => 
-                t.invoice_id === row.invoice_id || 
-                t.invoice_id === row.payment_id ||
-                t.sender_invoice_no === row.sender_invoice_no
-              );
-              if (!existing) {
-                transactions.push({
-                  invoice_id: row.invoice_id || row.payment_id,
-                  sender_invoice_no: row.sender_invoice_no || null,
-                  payment_id: row.payment_id || null,
-                  amount: row.payment_amount || 9900,
-                  status: row.payment_status === 'PAID' ? 'PAID' : 'PENDING',
-                  paidAt: row.payment_date || row.created_date,
-                  createdAt: row.created_date || row.payment_date,
-                  date: (row.payment_date || row.created_date || todayStr).split('T')[0],
-                  profile: { name: row.customer_name || 'QPay Хэрэглэгч', worry: 'wealth' }
-                });
-              } else if (row.payment_status === 'PAID') {
-                existing.status = 'PAID';
-                if (!existing.paidAt) existing.paidAt = row.payment_date || row.created_date || now.toISOString();
-              }
+
+        const pendingTxs = transactions.filter(t => t.status === 'PENDING' && t.invoice_id && !t.invoice_id.startsWith('MOCK-'));
+
+        for (const tx of pendingTxs) {
+          try {
+            const checkRes = await fetch(`${baseUrl}/v2/payment/check`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${qToken}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                object_type: 'INVOICE',
+                object_id: tx.invoice_id,
+                offset: { page_number: 1, page_limit: 10 }
+              })
             });
+
+            if (checkRes.ok) {
+              const checkData = await checkRes.json();
+              const isPaid = (checkData.count > 0 && checkData.paid_amount > 0) ||
+                             (checkData.rows && checkData.rows.some(r => r.payment_status === 'PAID'));
+
+              if (isPaid) {
+                tx.status = 'PAID';
+                tx.amount = checkData.paid_amount || tx.amount || 9900;
+                tx.paidAt = (checkData.rows && checkData.rows[0]?.payment_date) || now.toISOString();
+                dbUpdated = true;
+              }
+            }
+          } catch (e) {
+            console.warn(`Could not check pending invoice ${tx.invoice_id}:`, e.message);
           }
         }
       } catch (err) {
-        console.warn('Could not fetch live QPay payment list:', err.message);
+        console.warn('QPay reconciliation error:', err.message);
       }
+    }
+
+    if (dbUpdated) {
+      await saveCloudData({ ...raw, transactions });
     }
 
     const paidTransactions = transactions.filter(t => t.status === 'PAID');
@@ -110,7 +108,6 @@ export default async function handler(req, res) {
 
     const conversionRate = totalVisitors > 0 ? ((paidTransactions.length / totalVisitors) * 100).toFixed(1) : (paidTransactions.length > 0 ? '100.0' : '0.0');
 
-    // Daily chart for last 14 days
     const dailyMap = {};
     for (let i = 13; i >= 0; i--) {
       const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
