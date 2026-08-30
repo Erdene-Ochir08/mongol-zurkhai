@@ -1,51 +1,40 @@
 ﻿const CLOUD_DB_URL = 'https://api.restful-api.dev/objects/ff808181a04ccf2d01a051b66386153c';
 
-let cache = {
-  visits: [],
-  events: [],
-  transactions: []
-};
-let lastFetchTime = 0;
-
 export async function fetchCloudData() {
-  // If cache is fresh (< 2 seconds), return cache
-  if (Date.now() - lastFetchTime < 2000 && cache.visits.length > 0) {
-    return cache;
-  }
-
   try {
-    const res = await fetch(CLOUD_DB_URL, { timeout: 4000 });
+    const res = await fetch(CLOUD_DB_URL, {
+      headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
+    });
     if (res.ok) {
       const body = await res.json();
       if (body && body.data) {
-        cache = {
+        return {
           visits: Array.isArray(body.data.visits) ? body.data.visits : [],
           events: Array.isArray(body.data.events) ? body.data.events : [],
           transactions: Array.isArray(body.data.transactions) ? body.data.transactions : []
         };
-        lastFetchTime = Date.now();
       }
     }
   } catch (err) {
     console.warn('Could not fetch cloud analytics:', err.message);
   }
-  return cache;
+  return { visits: [], events: [], transactions: [] };
 }
 
 export async function saveCloudData(data) {
-  cache = data;
-  lastFetchTime = Date.now();
-
   try {
     await fetch(CLOUD_DB_URL, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache'
+      },
       body: JSON.stringify({
         name: 'mongol_zurkhai_analytics_prod',
         data: {
-          visits: data.visits.slice(-3000),
-          events: data.events.slice(-3000),
-          transactions: data.transactions.slice(-1000)
+          visits: (data.visits || []).slice(-3000),
+          events: (data.events || []).slice(-3000),
+          transactions: (data.transactions || []).slice(-1000)
         }
       })
     });
