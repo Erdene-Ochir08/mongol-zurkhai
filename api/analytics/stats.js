@@ -45,8 +45,8 @@ export default async function handler(req, res) {
     const now = new Date();
     const todayStr = now.toISOString().split('T')[0];
 
-    let visits = [...(raw.visits || [])];
-    let transactions = [...(raw.transactions || [])];
+    let visits = Array.isArray(raw.visits) ? [...raw.visits] : [];
+    let transactions = Array.isArray(raw.transactions) ? [...raw.transactions] : [];
     let dbUpdated = false;
 
     // Automatic QPay Payment Reconciliation: Check all PENDING invoices directly with QPay Bank API
@@ -98,16 +98,23 @@ export default async function handler(req, res) {
     }
 
     const paidTransactions = transactions.filter(t => t.status === 'PAID');
-    const todayPaidTransactions = paidTransactions.filter(t => t.date === todayStr || (t.paidAt && t.paidAt.startsWith(todayStr)));
+    const todayPaidTransactions = paidTransactions.filter(t => {
+      const d = t.date || (t.paidAt && t.paidAt.split('T')[0]) || (t.createdAt && t.createdAt.split('T')[0]);
+      return d === todayStr;
+    });
 
     const totalRevenue = paidTransactions.reduce((sum, t) => sum + (t.amount || 9900), 0);
     const todayRevenue = todayPaidTransactions.reduce((sum, t) => sum + (t.amount || 9900), 0);
 
     const totalVisitors = Math.max(visits.length, paidTransactions.length);
-    const todayVisitors = visits.filter(v => v.date === todayStr).length;
+    const todayVisitors = visits.filter(v => {
+      const d = v.date || (v.timestamp && v.timestamp.split('T')[0]);
+      return d === todayStr;
+    }).length;
 
     const conversionRate = totalVisitors > 0 ? ((paidTransactions.length / totalVisitors) * 100).toFixed(1) : (paidTransactions.length > 0 ? '100.0' : '0.0');
 
+    // Daily breakdown for last 14 days
     const dailyMap = {};
     for (let i = 13; i >= 0; i--) {
       const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
@@ -116,13 +123,14 @@ export default async function handler(req, res) {
     }
 
     visits.forEach(v => {
-      if (dailyMap[v.date]) {
-        dailyMap[v.date].visits += 1;
+      const d = v.date || (v.timestamp && v.timestamp.split('T')[0]);
+      if (d && dailyMap[d]) {
+        dailyMap[d].visits += 1;
       }
     });
 
     paidTransactions.forEach(t => {
-      const d = t.date || (t.paidAt && t.paidAt.split('T')[0]);
+      const d = t.date || (t.paidAt && t.paidAt.split('T')[0]) || (t.createdAt && t.createdAt.split('T')[0]);
       if (d && dailyMap[d]) {
         dailyMap[d].revenue += (t.amount || 9900);
         dailyMap[d].payments += 1;
@@ -165,7 +173,7 @@ export default async function handler(req, res) {
         totalRevenue,
         todayRevenue,
         totalVisitors,
-        todayVisitors,
+        todayVisitors: Math.max(todayVisitors, todayPaidTransactions.length),
         paidCount: paidTransactions.length,
         pendingInvoices: transactions.filter(t => t.status === 'PENDING').length,
         conversionRate: `${conversionRate}%`,
