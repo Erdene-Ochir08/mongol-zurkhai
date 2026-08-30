@@ -48,7 +48,7 @@ export default async function handler(req, res) {
     let visits = [...(raw.visits || [])];
     let transactions = [...(raw.transactions || [])];
 
-    // Check live QPay payments if credentials exist
+    // Query real QPay bank ledger directly if credentials exist
     let isQPayLive = false;
     if (process.env.QPAY_PASSWORD) {
       try {
@@ -70,9 +70,16 @@ export default async function handler(req, res) {
           isQPayLive = true;
           if (qData.rows && Array.isArray(qData.rows)) {
             qData.rows.forEach(row => {
-              if (!transactions.some(t => t.invoice_id === row.invoice_id || t.invoice_id === row.payment_id)) {
+              const existing = transactions.find(t => 
+                t.invoice_id === row.invoice_id || 
+                t.invoice_id === row.payment_id ||
+                t.sender_invoice_no === row.sender_invoice_no
+              );
+              if (!existing) {
                 transactions.push({
                   invoice_id: row.invoice_id || row.payment_id,
+                  sender_invoice_no: row.sender_invoice_no || null,
+                  payment_id: row.payment_id || null,
                   amount: row.payment_amount || 9900,
                   status: row.payment_status === 'PAID' ? 'PAID' : 'PENDING',
                   paidAt: row.payment_date || row.created_date,
@@ -80,6 +87,9 @@ export default async function handler(req, res) {
                   date: (row.payment_date || row.created_date || todayStr).split('T')[0],
                   profile: { name: row.customer_name || 'QPay Хэрэглэгч', worry: 'wealth' }
                 });
+              } else if (row.payment_status === 'PAID') {
+                existing.status = 'PAID';
+                if (!existing.paidAt) existing.paidAt = row.payment_date || row.created_date || now.toISOString();
               }
             });
           }

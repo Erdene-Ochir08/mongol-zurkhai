@@ -79,24 +79,38 @@ export async function recordEvent(type, data = {}) {
   return event;
 }
 
-export async function recordTransaction({ invoice_id, amount = 9900, status = 'PENDING', profile = {}, isMock = false }) {
+export async function recordTransaction({ invoice_id, sender_invoice_no, payment_id, amount = 9900, status = 'PENDING', profile = {}, isMock = false }) {
   const current = await fetchCloudData();
   const now = new Date();
   const dateStr = now.toISOString().split('T')[0];
 
-  let tx = current.transactions.find(t => t.invoice_id === invoice_id);
+  const targetId = invoice_id || sender_invoice_no || payment_id || `INV-${Date.now()}`;
+
+  let tx = current.transactions.find(t => 
+    (invoice_id && (t.invoice_id === invoice_id || t.sender_invoice_no === invoice_id)) ||
+    (sender_invoice_no && (t.sender_invoice_no === sender_invoice_no || t.invoice_id === sender_invoice_no)) ||
+    (payment_id && (t.payment_id === payment_id || t.invoice_id === payment_id))
+  );
+
   if (tx) {
-    tx.status = status;
-    if (status === 'PAID' && !tx.paidAt) {
-      tx.paidAt = now.toISOString();
+    if (status === 'PAID') {
+      tx.status = 'PAID';
+      if (!tx.paidAt) tx.paidAt = now.toISOString();
+    } else if (tx.status !== 'PAID') {
+      tx.status = status;
     }
     if (profile && Object.keys(profile).length > 0) {
       tx.profile = { ...tx.profile, ...profile };
     }
+    if (sender_invoice_no && !tx.sender_invoice_no) tx.sender_invoice_no = sender_invoice_no;
+    if (payment_id && !tx.payment_id) tx.payment_id = payment_id;
+    if (amount) tx.amount = Number(amount);
   } else {
     tx = {
-      invoice_id,
-      amount: Number(amount),
+      invoice_id: targetId,
+      sender_invoice_no: sender_invoice_no || null,
+      payment_id: payment_id || null,
+      amount: Number(amount) || 9900,
       status,
       isMock,
       profile: profile || {},

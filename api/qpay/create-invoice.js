@@ -94,6 +94,7 @@ export default async function handler(req, res) {
     try {
       await recordTransaction({
         invoice_id: invoiceData.invoice_id,
+        sender_invoice_no: senderInvoiceNo,
         amount: Number(amount),
         status: 'PENDING',
         profile: profile || {},
@@ -104,6 +105,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       success: true,
       invoice_id: invoiceData.invoice_id,
+      sender_invoice_no: senderInvoiceNo,
       qr_text: invoiceData.qr_text,
       qr_image: invoiceData.qr_image,
       qPay_shortUrl: invoiceData.qPay_shortUrl,

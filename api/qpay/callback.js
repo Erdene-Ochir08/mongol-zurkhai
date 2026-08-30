@@ -8,13 +8,19 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  const invoiceId = req.query?.invoice_id || req.body?.invoice_id || req.query?.invoice_no || req.query?.payment_id;
+  const query = req.query || {};
+  const body = req.body || {};
 
-  if (invoiceId) {
+  const id = query.invoice_id || body.invoice_id || query.invoice_no || body.invoice_no || query.sender_invoice_no || body.sender_invoice_no || query.payment_id || body.payment_id || query.qpay_payment_id || body.qpay_payment_id;
+  const paidAmount = Number(body.paid_amount || query.paid_amount || body.amount || query.amount || 9900);
+
+  if (id) {
     try {
       await recordTransaction({
-        invoice_id: invoiceId,
-        amount: Number(req.body?.paid_amount || req.query?.paid_amount || 9900),
+        invoice_id: id,
+        sender_invoice_no: query.invoice_no || body.invoice_no || query.sender_invoice_no,
+        payment_id: query.payment_id || body.payment_id || query.qpay_payment_id,
+        amount: paidAmount,
         status: 'PAID'
       });
     } catch (e) {
