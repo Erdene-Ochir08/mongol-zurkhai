@@ -1,4 +1,5 @@
 ﻿import { getQPayToken, getQPayBaseUrl, getInvoiceCode } from './utils.js';
+import { recordTransaction } from '../analytics/store.js';
 
 export default async function handler(req, res) {
   // Allow CORS for development & production
@@ -20,12 +21,22 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { amount = 9900, description = 'Монгол Зурхай - 4 бүлэг нээх эрх', readingId = '' } = req.body || {};
+    const { amount = 9900, description = 'Монгол Зурхай - 4 бүлэг нээх эрх', profile = {} } = req.body || {};
     const password = process.env.QPAY_PASSWORD;
 
     // If password not yet set, provide informative mock response for frontend testing
     if (!password) {
       const mockInvoiceId = `MOCK-INV-${Date.now()}`;
+      try {
+        recordTransaction({
+          invoice_id: mockInvoiceId,
+          amount: Number(amount),
+          status: 'PENDING',
+          profile: profile || {},
+          isMock: true
+        });
+      } catch (e) {}
+
       return res.status(200).json({
         isMock: true,
         message: 'QPAY_PASSWORD тохируулагдаагүй тул Тест горим ажиллаж байна.',
@@ -81,6 +92,16 @@ export default async function handler(req, res) {
     }
 
     const invoiceData = await qpayRes.json();
+
+    try {
+      recordTransaction({
+        invoice_id: invoiceData.invoice_id,
+        amount: Number(amount),
+        status: 'PENDING',
+        profile: profile || {},
+        isMock: false
+      });
+    } catch (e) {}
 
     return res.status(200).json({
       success: true,

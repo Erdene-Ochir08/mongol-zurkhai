@@ -1,4 +1,5 @@
 ﻿import { getQPayToken, getQPayBaseUrl } from './utils.js';
+import { recordTransaction } from '../analytics/store.js';
 
 export default async function handler(req, res) {
   // Allow CORS
@@ -63,6 +64,16 @@ export default async function handler(req, res) {
     const checkData = await qpayRes.json();
     const isPaid = (checkData.count > 0 && checkData.paid_amount > 0) ||
                    (checkData.rows && checkData.rows.some(r => r.payment_status === 'PAID'));
+
+    if (isPaid) {
+      try {
+        recordTransaction({
+          invoice_id: invoiceId,
+          amount: checkData.paid_amount || 9900,
+          status: 'PAID'
+        });
+      } catch (e) {}
+    }
 
     return res.status(200).json({
       paid: isPaid,

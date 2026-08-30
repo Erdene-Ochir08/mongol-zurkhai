@@ -1,0 +1,603 @@
+﻿<!DOCTYPE html>
+<html lang="mn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Монгол Зурхай · Admin Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800;900&family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,800;1,600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            serif: ['Cinzel', 'Playfair Display', 'serif'],
+            sans: ['Inter', 'sans-serif']
+          },
+          colors: {
+            gold: {
+              300: '#fde047',
+              400: '#facc15',
+              500: '#eab308',
+              600: '#ca8a04'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #070709;
+      color: #f4eee0;
+      font-family: 'Inter', sans-serif;
+    }
+    .gold-gradient-text {
+      background: linear-gradient(180deg, #fffbeb 0%, #f59e0b 50%, #b45309 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #0e0e14;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #332314;
+      border-radius: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #78350f;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-amber-500 selection:text-black">
+
+  <!-- AUTH MODAL -->
+  <div id="authModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-md">
+    <div class="relative w-full max-w-md rounded-3xl border-2 border-amber-500/70 bg-[#0e0e14] p-8 text-center shadow-[0_0_60px_rgba(245,158,11,0.25)]">
+      <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-amber-500/50 bg-amber-950/60 text-2xl">
+        🔐
+      </div>
+      <span class="text-[10px] font-bold tracking-[0.25em] text-amber-400 uppercase">EXECUTIVE ACCESS</span>
+      <h2 class="mt-1 font-serif text-2xl font-black text-white">Админ Нэвтрэх</h2>
+      <p class="mt-2 text-xs text-stone-400">Монгол Зурхай бодит өгөгдөл, орлого & зочдын хяналтын самбар</p>
+      
+      <form id="loginForm" class="mt-6 space-y-4" onsubmit="handleLogin(event)">
+        <div class="relative">
+          <input 
+            type="password" 
+            id="passwordInput" 
+            placeholder="Админ нууц үг оруулна уу..."
+            class="w-full rounded-2xl border border-amber-500/40 bg-black/80 px-4 py-3.5 text-center text-sm font-medium text-white placeholder-stone-600 shadow-inner outline-none transition-all focus:border-amber-400 focus:ring-2 focus:ring-amber-500/20"
+            required
+            autocomplete="current-password"
+          />
+        </div>
+        <p id="loginError" class="hidden text-xs text-red-400"></p>
+        <button 
+          type="submit" 
+          id="loginBtn"
+          class="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-amber-400 bg-gradient-to-r from-red-950 via-amber-800 to-red-950 py-3.5 font-serif text-xs font-bold tracking-wider text-amber-100 shadow-[0_0_25px_rgba(245,158,11,0.4)] transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+        >
+          НЭВТРЭХ →
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MAIN DASHBOARD (HIDDEN UNTIL AUTH) -->
+  <div id="dashboardApp" class="hidden flex-1 flex flex-col">
+    
+    <!-- TOP NAVBAR -->
+    <header class="sticky top-0 z-40 border-b border-amber-900/40 bg-black/80 px-4 sm:px-8 py-3.5 backdrop-blur-md flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <a href="/" class="flex h-9 w-9 items-center justify-center rounded-xl border border-amber-500/40 bg-stone-900 text-amber-300 hover:bg-amber-950 transition-all text-xs" title="Вэбсайт руу буцах">
+          ←
+        </a>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-sm">✦</span>
+            <h1 class="font-serif text-sm sm:text-base font-bold tracking-wider text-amber-200 uppercase">
+              МОНГОЛ ЗУРХАЙ · УДИРДЛАГЫН САМБАР
+            </h1>
+          </div>
+          <p class="text-[10px] text-stone-400">Бодит зочид, QPay төлбөр & Орлогын удирдлага</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <div class="hidden sm:flex items-center gap-2 rounded-full border border-stone-800 bg-black/60 px-3 py-1 text-xs text-stone-300">
+          <span class="h-2 w-2 rounded-full bg-emerald-400 animate-ping"></span>
+          <span id="liveTime">00:00:00</span>
+        </div>
+        <button 
+          onclick="fetchData()" 
+          class="flex items-center gap-1.5 rounded-xl border border-amber-500/40 bg-amber-950/40 px-3 py-1.5 text-xs font-bold text-amber-300 hover:bg-amber-900/60 transition-all cursor-pointer"
+        >
+          <span>⟳</span> <span class="hidden sm:inline">Шинэчлэх</span>
+        </button>
+        <button 
+          onclick="handleLogout()" 
+          class="rounded-xl border border-stone-700 bg-stone-900 px-3 py-1.5 text-xs font-semibold text-stone-300 hover:bg-stone-800 transition-all cursor-pointer"
+        >
+          Гарах
+        </button>
+      </div>
+    </header>
+
+    <!-- CONTENT WRAPPER -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-8 space-y-6">
+      
+      <!-- KPI CARDS GRID -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        <!-- Total Revenue -->
+        <div class="relative overflow-hidden rounded-3xl border border-amber-500/40 bg-gradient-to-b from-[#16120e] to-[#0c0a08] p-5 shadow-xl">
+          <div class="flex items-center justify-between text-stone-400">
+            <span class="text-xs font-bold tracking-wider uppercase text-amber-400/90">Нийт Орлого (Total Gross)</span>
+            <span class="text-lg">💰</span>
+          </div>
+          <div class="mt-3 flex items-baseline gap-2">
+            <h2 id="kpiTotalRevenue" class="font-serif text-3xl font-black text-amber-300">₮0</h2>
+          </div>
+          <p id="kpiPaidCount" class="mt-1 text-[11px] text-stone-400">0 амжилттай төлбөр (9,900₮)</p>
+          <div class="absolute -right-6 -bottom-6 h-24 w-24 rounded-full bg-amber-500/5 blur-2xl pointer-events-none"></div>
+        </div>
+
+        <!-- Today Revenue -->
+        <div class="relative overflow-hidden rounded-3xl border border-emerald-500/40 bg-gradient-to-b from-[#0e1612] to-[#080c0a] p-5 shadow-xl">
+          <div class="flex items-center justify-between text-stone-400">
+            <span class="text-xs font-bold tracking-wider uppercase text-emerald-400/90">Өнөөдрийн Орлого (Today)</span>
+            <span class="text-lg">📈</span>
+          </div>
+          <div class="mt-3 flex items-baseline gap-2">
+            <h2 id="kpiTodayRevenue" class="font-serif text-3xl font-black text-emerald-300">₮0</h2>
+          </div>
+          <p id="kpiTodayPaid" class="mt-1 text-[11px] text-stone-400">Өнөөдөр 0 хүн төлсөн</p>
+          <div class="absolute -right-6 -bottom-6 h-24 w-24 rounded-full bg-emerald-500/5 blur-2xl pointer-events-none"></div>
+        </div>
+
+        <!-- Total Visitors -->
+        <div class="relative overflow-hidden rounded-3xl border border-stone-800 bg-[#0e0e14] p-5 shadow-xl">
+          <div class="flex items-center justify-between text-stone-400">
+            <span class="text-xs font-bold tracking-wider uppercase text-stone-300">Бодит Зочид (Visitors)</span>
+            <span class="text-lg">👥</span>
+          </div>
+          <div class="mt-3 flex items-baseline gap-2">
+            <h2 id="kpiTotalVisitors" class="font-serif text-3xl font-black text-white">0</h2>
+            <span id="kpiTodayVisitors" class="text-xs font-semibold text-amber-400">+0 өнөөдөр</span>
+          </div>
+          <p id="kpiMobilePercent" class="mt-1 text-[11px] text-stone-400">100% Утаснаас хандсан</p>
+        </div>
+
+        <!-- Conversion Rate -->
+        <div class="relative overflow-hidden rounded-3xl border border-stone-800 bg-[#0e0e14] p-5 shadow-xl">
+          <div class="flex items-center justify-between text-stone-400">
+            <span class="text-xs font-bold tracking-wider uppercase text-stone-300">Хөрвүүлэлтийн Хувь (Conv. Rate)</span>
+            <span class="text-lg">🎯</span>
+          </div>
+          <div class="mt-3 flex items-baseline gap-2">
+            <h2 id="kpiConversionRate" class="font-serif text-3xl font-black text-white">0.0%</h2>
+          </div>
+          <p id="kpiPendingInvoices" class="mt-1 text-[11px] text-stone-400">0 хүлээгдэж буй нэхэмжлэх</p>
+        </div>
+
+      </div>
+
+      <!-- CHARTS & DISTRIBUTION SECTION -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Daily Trend Bar Chart (2 cols) -->
+        <div class="lg:col-span-2 rounded-3xl border border-stone-800 bg-[#0e0e14] p-5 sm:p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="font-serif text-sm font-bold text-amber-200 uppercase">Сүүлийн 14 хоногийн динамик</h3>
+              <p class="text-xs text-stone-400">Өдөр тутмын зочид (Цагаан) & Орлого (Шар)</p>
+            </div>
+            <div class="flex items-center gap-3 text-xs">
+              <span class="flex items-center gap-1"><span class="h-2.5 w-2.5 rounded bg-amber-400"></span> Орлого (₮)</span>
+              <span class="flex items-center gap-1"><span class="h-2.5 w-2.5 rounded bg-stone-600"></span> Зочид</span>
+            </div>
+          </div>
+          
+          <!-- Chart Container -->
+          <div id="chartContainer" class="h-48 flex items-end gap-2 pt-6 pb-2 border-b border-stone-800 overflow-x-auto custom-scrollbar">
+            <!-- Bars rendered via JS -->
+          </div>
+          <div id="chartLabels" class="flex justify-between text-[9px] text-stone-500 mt-2 px-1">
+            <!-- Dates rendered via JS -->
+          </div>
+        </div>
+
+        <!-- Worry Categories & Device Distribution (1 col) -->
+        <div class="space-y-6">
+          
+          <!-- Worry Breakdown -->
+          <div class="rounded-3xl border border-stone-800 bg-[#0e0e14] p-5">
+            <h3 class="font-serif text-xs font-bold text-amber-200 uppercase mb-3">Хамгийн их сонирхож буй сэдэв</h3>
+            <div id="worryList" class="space-y-2.5">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <!-- Device Stats -->
+          <div class="rounded-3xl border border-stone-800 bg-[#0e0e14] p-5">
+            <h3 class="font-serif text-xs font-bold text-amber-200 uppercase mb-3">Төхөөрөмжийн тархалт</h3>
+            <div id="deviceList" class="space-y-2">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- RECENT TRANSACTIONS LEDGER -->
+      <div class="rounded-3xl border border-stone-800 bg-[#0e0e14] p-5 sm:p-6 space-y-4">
+        
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h3 class="font-serif text-base font-bold text-amber-200 uppercase flex items-center gap-2">
+              <span>🧾</span> Бодит Гүйлгээ & Төлбөрийн Түүх
+            </h3>
+            <p class="text-xs text-stone-400">QPay-ээр үүсгэгдсэн болон төлөгдсөн сүүлийн бүртгэлүүд</p>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <input 
+              type="text" 
+              id="searchTxInput" 
+              placeholder="Нэр, огноо, ID-аар хайх..."
+              oninput="filterTransactions()"
+              class="rounded-xl border border-stone-800 bg-black/60 px-3 py-1.5 text-xs text-stone-200 placeholder-stone-600 outline-none focus:border-amber-500/50"
+            />
+            <button 
+              onclick="exportCSV()" 
+              class="flex items-center gap-1.5 rounded-xl border border-emerald-500/40 bg-emerald-950/40 px-3 py-1.5 text-xs font-bold text-emerald-300 hover:bg-emerald-900/60 transition-all cursor-pointer whitespace-nowrap"
+            >
+              <span>📥</span> Excel / CSV Татах
+            </button>
+          </div>
+        </div>
+
+        <!-- Table Responsive -->
+        <div class="overflow-x-auto custom-scrollbar rounded-2xl border border-stone-800/80">
+          <table class="w-full text-left text-xs text-stone-300">
+            <thead class="bg-black/60 font-serif text-[11px] font-bold text-amber-400 uppercase border-b border-stone-800">
+              <tr>
+                <th class="p-3.5">Огноо / Цаг</th>
+                <th class="p-3.5">Хэрэглэгчийн Нэр</th>
+                <th class="p-3.5">Төрсөн Огноо</th>
+                <th class="p-3.5">Хүйс</th>
+                <th class="p-3.5">Зовоосон Сэдэв</th>
+                <th class="p-3.5">Нэхэмжлэх ID</th>
+                <th class="p-3.5">Төлөв</th>
+                <th class="p-3.5 text-right">Дүн</th>
+              </tr>
+            </thead>
+            <tbody id="txTableBody" class="divide-y divide-stone-800/60">
+              <tr>
+                <td colspan="8" class="p-6 text-center text-stone-500">Мэдээлэл ачаалж байна...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="border-t border-stone-900 bg-black/40 px-8 py-4 text-center text-xs text-stone-500">
+      Монгол Зурхай · Бүх эрх хуулиар хамгаалагдсан &copy; 2026. Real-time Executive Telemetry.
+    </footer>
+
+  </div>
+
+  <!-- SCRIPT LOGIC -->
+  <script>
+    let currentAuthToken = localStorage.getItem('zurkhai_admin_token') || '';
+    let globalStats = null;
+    let allTransactions = [];
+
+    // Live clock
+    setInterval(() => {
+      const now = new Date();
+      const el = document.getElementById('liveTime');
+      if (el) el.innerText = now.toLocaleTimeString('mn-MN');
+    }, 1000);
+
+    // Check saved session
+    window.addEventListener('DOMContentLoaded', () => {
+      if (currentAuthToken) {
+        fetchData();
+      }
+    });
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const pass = document.getElementById('passwordInput').value.trim();
+      const errEl = document.getElementById('loginError');
+      const btn = document.getElementById('loginBtn');
+
+      errEl.classList.add('hidden');
+      btn.innerText = 'Шалгаж байна…';
+
+      try {
+        const res = await fetch('/api/analytics/stats', {
+          headers: { 'Authorization': `Bearer ${pass}` }
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          errEl.innerText = data.message || 'Нууц үг буруу байна!';
+          errEl.classList.remove('hidden');
+          btn.innerText = 'НЭВТРЭХ →';
+          return;
+        }
+
+        const data = await res.json();
+        currentAuthToken = pass;
+        localStorage.setItem('zurkhai_admin_token', pass);
+        
+        document.getElementById('authModal').classList.add('hidden');
+        document.getElementById('dashboardApp').classList.remove('hidden');
+        renderDashboard(data);
+      } catch (err) {
+        errEl.innerText = 'Сервертэй холбогдоход алдаа гарлаа: ' + err.message;
+        errEl.classList.remove('hidden');
+      } finally {
+        btn.innerText = 'НЭВТРЭХ →';
+      }
+    }
+
+    function handleLogout() {
+      localStorage.removeItem('zurkhai_admin_token');
+      currentAuthToken = '';
+      document.getElementById('authModal').classList.remove('hidden');
+      document.getElementById('dashboardApp').classList.add('hidden');
+    }
+
+    async function fetchData() {
+      if (!currentAuthToken) return;
+
+      try {
+        const res = await fetch('/api/analytics/stats', {
+          headers: { 'Authorization': `Bearer ${currentAuthToken}` }
+        });
+
+        if (res.status === 401) {
+          handleLogout();
+          return;
+        }
+
+        const data = await res.json();
+        document.getElementById('authModal').classList.add('hidden');
+        document.getElementById('dashboardApp').classList.remove('hidden');
+        renderDashboard(data);
+      } catch (err) {
+        console.error('Fetch error:', err);
+      }
+    }
+
+    function renderDashboard(data) {
+      globalStats = data;
+      const m = data.metrics || {};
+
+      // KPI Numbers
+      document.getElementById('kpiTotalRevenue').innerText = `₮${(m.totalRevenue || 0).toLocaleString('mn-MN')}`;
+      document.getElementById('kpiPaidCount').innerText = `${m.paidCount || 0} амжилттай төлбөр (9,900₮)`;
+      
+      document.getElementById('kpiTodayRevenue').innerText = `₮${(m.todayRevenue || 0).toLocaleString('mn-MN')}`;
+      document.getElementById('kpiTodayPaid').innerText = `Өнөөдөр ${m.todayPaidCount || Math.floor((m.todayRevenue || 0)/9900)} хүн төлсөн`;
+
+      document.getElementById('kpiTotalVisitors').innerText = (m.totalVisitors || 0).toLocaleString('mn-MN');
+      document.getElementById('kpiTodayVisitors').innerText = `+${m.todayVisitors || 0} өнөөдөр`;
+      document.getElementById('kpiMobilePercent').innerText = `${m.mobilePercent || 100}% Утаснаас хандсан`;
+
+      document.getElementById('kpiConversionRate').innerText = m.conversionRate || '0.0%';
+      document.getElementById('kpiPendingInvoices').innerText = `${m.pendingInvoices || 0} хүлээгдэж буй нэхэмжлэх`;
+
+      // Render Charts
+      renderDailyChart(data.dailyChart || []);
+      renderWorryBreakdown(data.worryDistribution || []);
+      renderDeviceBreakdown(data.deviceDistribution || []);
+
+      // Render Transactions
+      allTransactions = data.recentTransactions || [];
+      renderTransactionsTable(allTransactions);
+    }
+
+    function renderDailyChart(chartData) {
+      const container = document.getElementById('chartContainer');
+      const labels = document.getElementById('chartLabels');
+      if (!container || !labels) return;
+
+      container.innerHTML = '';
+      labels.innerHTML = '';
+
+      if (chartData.length === 0) {
+        container.innerHTML = '<div class="m-auto text-xs text-stone-500">График өгөгдөл хараахан байхгүй байна</div>';
+        return;
+      }
+
+      const maxRev = Math.max(...chartData.map(d => d.revenue || 0), 9900);
+      const maxVis = Math.max(...chartData.map(d => d.visits || 0), 10);
+
+      chartData.forEach(d => {
+        const revHeight = maxRev > 0 ? Math.round(((d.revenue || 0) / maxRev) * 100) : 0;
+        const visHeight = maxVis > 0 ? Math.round(((d.visits || 0) / maxVis) * 100) : 0;
+
+        const barGroup = document.createElement('div');
+        barGroup.className = 'flex-1 flex flex-col items-center justify-end h-full gap-1 group relative min-w-[20px]';
+
+        // Tooltip
+        const tooltip = `
+          <div class="absolute -top-12 left-1/2 -translate-x-1/2 hidden group-hover:flex flex-col items-center bg-black/95 border border-amber-500/60 rounded-lg px-2 py-1 text-[10px] text-white shadow-xl z-20 whitespace-nowrap">
+            <span class="font-bold text-amber-300">₮${(d.revenue || 0).toLocaleString()}</span>
+            <span class="text-stone-300">${d.visits || 0} зочин · ${d.date}</span>
+          </div>
+        `;
+
+        barGroup.innerHTML = `
+          ${tooltip}
+          <div class="w-full flex items-end justify-center gap-0.5 h-full">
+            <div style="height: ${Math.max(visHeight, 4)}%" class="w-2 rounded-t bg-stone-700 hover:bg-stone-500 transition-all"></div>
+            <div style="height: ${Math.max(revHeight, (d.revenue > 0 ? 8 : 2))}%" class="w-2 rounded-t ${d.revenue > 0 ? 'bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.5)]' : 'bg-stone-800'} transition-all"></div>
+          </div>
+        `;
+        container.appendChild(barGroup);
+
+        const lbl = document.createElement('span');
+        lbl.innerText = d.date.split('-').slice(1).join('/');
+        labels.appendChild(lbl);
+      });
+    }
+
+    function renderWorryBreakdown(worries) {
+      const list = document.getElementById('worryList');
+      if (!list) return;
+      list.innerHTML = '';
+
+      const total = worries.reduce((sum, w) => sum + w.count, 0) || 1;
+      worries.forEach(w => {
+        const pct = Math.round((w.count / total) * 100);
+        const item = document.createElement('div');
+        item.className = 'space-y-1';
+        item.innerHTML = `
+          <div class="flex justify-between text-xs">
+            <span class="text-stone-300 truncate">${w.name}</span>
+            <span class="font-bold text-amber-300">${w.count} (${pct}%)</span>
+          </div>
+          <div class="h-1.5 w-full rounded-full bg-stone-800 overflow-hidden">
+            <div class="h-full bg-gradient-to-r from-amber-600 to-amber-400 rounded-full" style="width: ${pct}%"></div>
+          </div>
+        `;
+        list.appendChild(item);
+      });
+    }
+
+    function renderDeviceBreakdown(devices) {
+      const list = document.getElementById('deviceList');
+      if (!list) return;
+      list.innerHTML = '';
+
+      const total = devices.reduce((sum, d) => sum + d.count, 0) || 1;
+      devices.forEach(d => {
+        const pct = Math.round((d.count / total) * 100);
+        const row = document.createElement('div');
+        row.className = 'flex items-center justify-between text-xs py-1 border-b border-stone-800/40';
+        row.innerHTML = `
+          <span class="text-stone-400">${d.name}</span>
+          <span class="font-mono font-semibold text-stone-200">${d.count} (${pct}%)</span>
+        `;
+        list.appendChild(row);
+      });
+    }
+
+    function renderTransactionsTable(txs) {
+      const tbody = document.getElementById('txTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      if (txs.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-stone-500">Одоогоор гүйлгээний бүртгэл байхгүй байна.</td></tr>`;
+        return;
+      }
+
+      txs.forEach(t => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-stone-900/50 transition-colors';
+
+        const isPaid = t.status === 'PAID';
+        const statusBadge = isPaid
+          ? `<span class="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-950/60 px-2.5 py-0.5 text-[10px] font-bold text-emerald-300">✓ ТӨЛӨГДСӨН</span>`
+          : `<span class="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-950/40 px-2.5 py-0.5 text-[10px] font-bold text-amber-300">⏳ ХҮЛЭЭГДЭЖ БУЙ</span>`;
+
+        const name = t.profile?.name || 'Нэргүй';
+        const birthDate = t.profile?.birthDate || '-';
+        const gender = t.profile?.gender === 'male' ? 'Эрэгтэй' : (t.profile?.gender === 'female' ? 'Эмэгтэй' : '-');
+        const worryMap = { wealth: 'Эд хөрөнгө', love: 'Хайр дурлал', career: 'Ажил алба', protection: 'Далд дайсан' };
+        const worry = worryMap[t.profile?.worry] || t.profile?.worry || 'Зурхай';
+
+        const timeStr = t.paidAt || t.createdAt || '';
+        const formattedDate = timeStr ? new Date(timeStr).toLocaleString('mn-MN', { dateStyle: 'short', timeStyle: 'short' }) : '-';
+
+        tr.innerHTML = `
+          <td class="p-3.5 font-mono text-[11px] text-stone-400">${formattedDate}</td>
+          <td class="p-3.5 font-bold text-white">${name}</td>
+          <td class="p-3.5 font-mono text-stone-300">${birthDate}</td>
+          <td class="p-3.5 text-stone-400">${gender}</td>
+          <td class="p-3.5"><span class="rounded bg-stone-800 px-2 py-0.5 text-[10px] text-stone-300">${worry}</span></td>
+          <td class="p-3.5 font-mono text-[10px] text-stone-500 truncate max-w-[120px]" title="${t.invoice_id}">${t.invoice_id}</td>
+          <td class="p-3.5">${statusBadge}</td>
+          <td class="p-3.5 text-right font-mono font-bold ${isPaid ? 'text-amber-300' : 'text-stone-400'}">₮${(t.amount || 9900).toLocaleString()}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function filterTransactions() {
+      const q = document.getElementById('searchTxInput').value.toLowerCase().trim();
+      if (!q) {
+        renderTransactionsTable(allTransactions);
+        return;
+      }
+      const filtered = allTransactions.filter(t => {
+        const name = (t.profile?.name || '').toLowerCase();
+        const bdate = (t.profile?.birthDate || '').toLowerCase();
+        const id = (t.invoice_id || '').toLowerCase();
+        return name.includes(q) || bdate.includes(q) || id.includes(q);
+      });
+      renderTransactionsTable(filtered);
+    }
+
+    function exportCSV() {
+      if (!allTransactions || allTransactions.length === 0) {
+        alert('Татах гүйлгээний өгөгдөл байхгүй байна.');
+        return;
+      }
+
+      // UTF-8 BOM for Excel Mongolian support
+      let csv = '\uFEFF';
+      csv += 'Огноо,Нэр,Төрсөн огноо,Хүйс,Зовоосон асуудал,Нэхэмжлэх ID,Төлөв,Дүн (MNT)\n';
+
+      allTransactions.forEach(t => {
+        const time = t.paidAt || t.createdAt || '';
+        const name = `"${(t.profile?.name || '').replace(/"/g, '""')}"`;
+        const bdate = `"${t.profile?.birthDate || ''}"`;
+        const gender = t.profile?.gender === 'male' ? 'Эрэгтэй' : (t.profile?.gender === 'female' ? 'Эмэгтэй' : '');
+        const worryMap = { wealth: 'Эд хөрөнгө', love: 'Хайр дурлал', career: 'Ажил алба', protection: 'Далд дайсан' };
+        const worry = `"${worryMap[t.profile?.worry] || t.profile?.worry || ''}"`;
+        const id = `"${t.invoice_id || ''}"`;
+        const status = t.status === 'PAID' ? 'ТӨЛӨГДСӨН' : 'ХҮЛЭЭГДЭЖ БУЙ';
+        const amount = t.amount || 9900;
+
+        csv += `${time},${name},${bdate},${gender},${worry},${id},${status},${amount}\n`;
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `mongol_zurkhai_transactions_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    // Auto refresh every 25 seconds
+    setInterval(() => {
+      if (currentAuthToken) {
+        fetchData();
+      }
+    }, 25000);
+  </script>
+</body>
+</html>
