@@ -9,7 +9,6 @@ function sendJson(res, statusCode, data) {
 }
 
 export default async function handler(req, res) {
-  // Allow CORS
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST');
@@ -30,12 +29,12 @@ export default async function handler(req, res) {
     const { type = 'pageview', data = {} } = req.body || {};
 
     if (type === 'pageview') {
-      const visit = recordVisit({ ip, userAgent, path: data.path || '/' });
+      const visit = await recordVisit({ ip, userAgent, path: data.path || '/' });
       return sendJson(res, 200, { success: true, visit });
     }
 
     if (type === 'payment_success') {
-      const tx = recordTransaction({
+      const tx = await recordTransaction({
         invoice_id: data.invoice_id || `TX-${Date.now()}`,
         amount: data.amount || 9900,
         status: 'PAID',
@@ -45,7 +44,7 @@ export default async function handler(req, res) {
       return sendJson(res, 200, { success: true, transaction: tx });
     }
 
-    const event = recordEvent(type, { ...data, ip, userAgent });
+    const event = await recordEvent(type, { ...data, ip, userAgent });
     return sendJson(res, 200, { success: true, event });
   } catch (error) {
     console.error('Error tracking analytics:', error);

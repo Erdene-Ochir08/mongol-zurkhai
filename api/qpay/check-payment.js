@@ -2,7 +2,6 @@
 import { recordTransaction } from '../analytics/store.js';
 
 export default async function handler(req, res) {
-  // Allow CORS
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -22,7 +21,6 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Missing invoice_id parameter.' });
   }
 
-  // Handle mock mode
   if (invoiceId.startsWith('MOCK-INV-') || !process.env.QPAY_PASSWORD) {
     return res.status(200).json({
       paid: false,
@@ -67,7 +65,7 @@ export default async function handler(req, res) {
 
     if (isPaid) {
       try {
-        recordTransaction({
+        await recordTransaction({
           invoice_id: invoiceId,
           amount: checkData.paid_amount || 9900,
           status: 'PAID'

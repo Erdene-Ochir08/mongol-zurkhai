@@ -2,7 +2,6 @@
 import { recordTransaction } from '../analytics/store.js';
 
 export default async function handler(req, res) {
-  // Allow CORS for development & production
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -24,11 +23,10 @@ export default async function handler(req, res) {
     const { amount = 9900, description = 'Монгол Зурхай - 4 бүлэг нээх эрх', profile = {} } = req.body || {};
     const password = process.env.QPAY_PASSWORD;
 
-    // If password not yet set, provide informative mock response for frontend testing
     if (!password) {
       const mockInvoiceId = `MOCK-INV-${Date.now()}`;
       try {
-        recordTransaction({
+        await recordTransaction({
           invoice_id: mockInvoiceId,
           amount: Number(amount),
           status: 'PENDING',
@@ -94,7 +92,7 @@ export default async function handler(req, res) {
     const invoiceData = await qpayRes.json();
 
     try {
-      recordTransaction({
+      await recordTransaction({
         invoice_id: invoiceData.invoice_id,
         amount: Number(amount),
         status: 'PENDING',

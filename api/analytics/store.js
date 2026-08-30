@@ -1,46 +1,64 @@
-﻿import fs from 'fs';
-import path from 'path';
+﻿const CLOUD_DB_URL = 'https://api.restful-api.dev/objects/ff808181a04ccf2d01a051b66386153c';
 
-const TMP_FILE = path.join('/tmp', 'zurkhai_analytics.json');
-
-// In-memory fallback
-let memoryData = {
+let cache = {
   visits: [],
   events: [],
   transactions: []
 };
+let lastFetchTime = 0;
 
-// Initialize from file if exists
-function loadData() {
+export async function fetchCloudData() {
+  // If cache is fresh (< 2 seconds), return cache
+  if (Date.now() - lastFetchTime < 2000 && cache.visits.length > 0) {
+    return cache;
+  }
+
   try {
-    if (fs.existsSync(TMP_FILE)) {
-      const content = fs.readFileSync(TMP_FILE, 'utf8');
-      const parsed = JSON.parse(content);
-      memoryData = {
-        visits: parsed.visits || [],
-        events: parsed.events || [],
-        transactions: parsed.transactions || []
-      };
+    const res = await fetch(CLOUD_DB_URL, { timeout: 4000 });
+    if (res.ok) {
+      const body = await res.json();
+      if (body && body.data) {
+        cache = {
+          visits: Array.isArray(body.data.visits) ? body.data.visits : [],
+          events: Array.isArray(body.data.events) ? body.data.events : [],
+          transactions: Array.isArray(body.data.transactions) ? body.data.transactions : []
+        };
+        lastFetchTime = Date.now();
+      }
     }
   } catch (err) {
-    // Ignore and use memoryData
+    console.warn('Could not fetch cloud analytics:', err.message);
   }
-  return memoryData;
+  return cache;
 }
 
-function saveData() {
+export async function saveCloudData(data) {
+  cache = data;
+  lastFetchTime = Date.now();
+
   try {
-    fs.writeFileSync(TMP_FILE, JSON.stringify(memoryData, null, 2), 'utf8');
+    await fetch(CLOUD_DB_URL, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: 'mongol_zurkhai_analytics_prod',
+        data: {
+          visits: data.visits.slice(-3000),
+          events: data.events.slice(-3000),
+          transactions: data.transactions.slice(-1000)
+        }
+      })
+    });
   } catch (err) {
-    // Ignore file write errors in strict environments
+    console.warn('Could not save cloud analytics:', err.message);
   }
 }
 
-export function recordVisit({ ip, userAgent, path: reqPath }) {
-  loadData();
+export async function recordVisit({ ip, userAgent, path: reqPath }) {
+  const current = await fetchCloudData();
   const now = new Date();
   const dateStr = now.toISOString().split('T')[0];
-  
+
   const visit = {
     id: `v_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
     timestamp: now.toISOString(),
@@ -49,16 +67,13 @@ export function recordVisit({ ip, userAgent, path: reqPath }) {
     path: reqPath || '/'
   };
 
-  memoryData.visits.push(visit);
-  if (memoryData.visits.length > 5000) {
-    memoryData.visits = memoryData.visits.slice(-5000);
-  }
-  saveData();
+  current.visits.push(visit);
+  await saveCloudData(current);
   return visit;
 }
 
-export function recordEvent(type, data = {}) {
-  loadData();
+export async function recordEvent(type, data = {}) {
+  const current = await fetchCloudData();
   const now = new Date();
   const dateStr = now.toISOString().split('T')[0];
 
@@ -70,20 +85,17 @@ export function recordEvent(type, data = {}) {
     date: dateStr
   };
 
-  memoryData.events.push(event);
-  if (memoryData.events.length > 5000) {
-    memoryData.events = memoryData.events.slice(-5000);
-  }
-  saveData();
+  current.events.push(event);
+  await saveCloudData(current);
   return event;
 }
 
-export function recordTransaction({ invoice_id, amount = 9900, status = 'PENDING', profile = {}, isMock = false }) {
-  loadData();
+export async function recordTransaction({ invoice_id, amount = 9900, status = 'PENDING', profile = {}, isMock = false }) {
+  const current = await fetchCloudData();
   const now = new Date();
   const dateStr = now.toISOString().split('T')[0];
 
-  let tx = memoryData.transactions.find(t => t.invoice_id === invoice_id);
+  let tx = current.transactions.find(t => t.invoice_id === invoice_id);
   if (tx) {
     tx.status = status;
     if (status === 'PAID' && !tx.paidAt) {
@@ -103,17 +115,13 @@ export function recordTransaction({ invoice_id, amount = 9900, status = 'PENDING
       paidAt: status === 'PAID' ? now.toISOString() : null,
       date: dateStr
     };
-    memoryData.transactions.push(tx);
+    current.transactions.push(tx);
   }
 
-  if (memoryData.transactions.length > 2000) {
-    memoryData.transactions = memoryData.transactions.slice(-2000);
-  }
-  saveData();
+  await saveCloudData(current);
   return tx;
 }
 
-export function getStats() {
-  loadData();
-  return memoryData;
+export async function getStats() {
+  return await fetchCloudData();
 }

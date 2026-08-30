@@ -1,4 +1,4 @@
-﻿import { getStats, recordTransaction, recordVisit } from './store.js';
+﻿import { getStats } from './store.js';
 import { getQPayToken, getQPayBaseUrl } from '../qpay/utils.js';
 
 const DEFAULT_ADMIN_PASSWORD = 'zurkhai2026!';
@@ -41,14 +41,14 @@ export default async function handler(req, res) {
   }
 
   try {
-    const raw = getStats();
+    const raw = await getStats();
     const now = new Date();
     const todayStr = now.toISOString().split('T')[0];
 
     let visits = [...(raw.visits || [])];
     let transactions = [...(raw.transactions || [])];
 
-    // Query real QPay bank server if live merchant credentials are set
+    // Check live QPay payments if credentials exist
     let isQPayLive = false;
     if (process.env.QPAY_PASSWORD) {
       try {
@@ -89,7 +89,6 @@ export default async function handler(req, res) {
       }
     }
 
-    // Filter real paid transactions
     const paidTransactions = transactions.filter(t => t.status === 'PAID');
     const todayPaidTransactions = paidTransactions.filter(t => t.date === todayStr || (t.paidAt && t.paidAt.startsWith(todayStr)));
 
