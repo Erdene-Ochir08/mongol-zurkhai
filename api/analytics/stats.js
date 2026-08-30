@@ -1,4 +1,5 @@
-﻿import { getStats } from './store.js';
+﻿import { getStats, recordTransaction, recordVisit } from './store.js';
+import { getQPayToken, getQPayBaseUrl } from '../qpay/utils.js';
 
 const DEFAULT_ADMIN_PASSWORD = 'zurkhai2026!';
 
@@ -11,7 +12,6 @@ function sendJson(res, statusCode, data) {
 }
 
 export default async function handler(req, res) {
-  // Allow CORS
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST');
@@ -26,7 +26,6 @@ export default async function handler(req, res) {
     return res.end();
   }
 
-  // Verify Admin Password
   const authHeader = req.headers['authorization'] || '';
   const token = authHeader.replace(/^Bearer\s+/i, '').trim();
   const queryKey = req.query?.key || (req.body && req.body.key);
@@ -41,14 +40,68 @@ export default async function handler(req, res) {
     });
   }
 
+  // Handle action to seed or sync test data if requested
+  if (req.method === 'POST' && req.body && req.body.action === 'seed_test_transaction') {
+    const mockId = `QPAY-INV-${Math.floor(100000 + Math.random() * 900000)}`;
+    const tx = recordTransaction({
+      invoice_id: mockId,
+      amount: 9900,
+      status: 'PAID',
+      profile: req.body.profile || { name: 'Эрдэнэ-Очир', birthDate: '1998-06-15', gender: 'male', worry: 'wealth' },
+      isMock: true
+    });
+    recordVisit({ ip: '127.0.0.1', userAgent: 'Mobile Safari', path: '/reader' });
+    return sendJson(res, 200, { success: true, message: 'Тест гүйлгээ амжилттай үүслээ.', transaction: tx });
+  }
+
   try {
     const raw = getStats();
     const now = new Date();
     const todayStr = now.toISOString().split('T')[0];
 
-    const visits = raw.visits || [];
-    const transactions = raw.transactions || [];
-    const events = raw.events || [];
+    let visits = [...(raw.visits || [])];
+    let transactions = [...(raw.transactions || [])];
+
+    // Try fetching live payments from QPay if password is set
+    let isQPayLive = false;
+    if (process.env.QPAY_PASSWORD) {
+      try {
+        const qToken = await getQPayToken();
+        const baseUrl = getQPayBaseUrl();
+        const qRes = await fetch(`${baseUrl}/v2/payment/list`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${qToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            object_type: 'INVOICE',
+            offset: { page_number: 1, page_limit: 100 }
+          })
+        });
+        if (qRes.ok) {
+          const qData = await qRes.json();
+          isQPayLive = true;
+          if (qData.rows && Array.isArray(qData.rows)) {
+            qData.rows.forEach(row => {
+              if (!transactions.some(t => t.invoice_id === row.invoice_id || t.invoice_id === row.payment_id)) {
+                transactions.push({
+                  invoice_id: row.invoice_id || row.payment_id,
+                  amount: row.payment_amount || 9900,
+                  status: row.payment_status === 'PAID' ? 'PAID' : 'PENDING',
+                  paidAt: row.payment_date || row.created_date,
+                  createdAt: row.created_date || row.payment_date,
+                  date: (row.payment_date || row.created_date || todayStr).split('T')[0],
+                  profile: { name: row.customer_name || 'QPay Хэрэглэгч', worry: 'wealth' }
+                });
+              }
+            });
+          }
+        }
+      } catch (err) {
+        console.warn('Could not fetch live QPay payment list:', err.message);
+      }
+    }
 
     // Filter paid transactions
     const paidTransactions = transactions.filter(t => t.status === 'PAID');
@@ -57,10 +110,10 @@ export default async function handler(req, res) {
     const totalRevenue = paidTransactions.reduce((sum, t) => sum + (t.amount || 9900), 0);
     const todayRevenue = todayPaidTransactions.reduce((sum, t) => sum + (t.amount || 9900), 0);
 
-    const totalVisitors = visits.length;
+    const totalVisitors = Math.max(visits.length, paidTransactions.length);
     const todayVisitors = visits.filter(v => v.date === todayStr).length;
 
-    const conversionRate = totalVisitors > 0 ? ((paidTransactions.length / totalVisitors) * 100).toFixed(1) : '0.0';
+    const conversionRate = totalVisitors > 0 ? ((paidTransactions.length / totalVisitors) * 100).toFixed(1) : (paidTransactions.length > 0 ? '100.0' : '0.0');
 
     // Daily breakdown for last 14 days
     const dailyMap = {};
@@ -103,7 +156,7 @@ export default async function handler(req, res) {
       }
     });
 
-    // Device breakdown from user agents
+    // Device breakdown
     let mobileCount = 0;
     let desktopCount = 0;
     visits.forEach(v => {
@@ -117,6 +170,7 @@ export default async function handler(req, res) {
 
     return sendJson(res, 200, {
       success: true,
+      isQPayLive: Boolean(process.env.QPAY_PASSWORD),
       metrics: {
         totalRevenue,
         todayRevenue,

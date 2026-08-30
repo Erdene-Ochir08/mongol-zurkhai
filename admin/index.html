@@ -15,14 +15,6 @@
           fontFamily: {
             serif: ['Cinzel', 'Playfair Display', 'serif'],
             sans: ['Inter', 'sans-serif']
-          },
-          colors: {
-            gold: {
-              300: '#fde047',
-              400: '#facc15',
-              500: '#eab308',
-              600: '#ca8a04'
-            }
           }
         }
       }
@@ -33,11 +25,6 @@
       background-color: #070709;
       color: #f4eee0;
       font-family: 'Inter', sans-serif;
-    }
-    .gold-gradient-text {
-      background: linear-gradient(180deg, #fffbeb 0%, #f59e0b 50%, #b45309 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
     }
     .custom-scrollbar::-webkit-scrollbar {
       width: 6px;
@@ -90,34 +77,45 @@
     </div>
   </div>
 
-  <!-- MAIN DASHBOARD (HIDDEN UNTIL AUTH) -->
+  <!-- MAIN DASHBOARD -->
   <div id="dashboardApp" class="hidden flex-1 flex flex-col">
     
     <!-- TOP NAVBAR -->
-    <header class="sticky top-0 z-40 border-b border-amber-900/40 bg-black/80 px-4 sm:px-8 py-3.5 backdrop-blur-md flex items-center justify-between">
+    <header class="sticky top-0 z-40 border-b border-amber-900/40 bg-black/85 px-4 sm:px-8 py-3.5 backdrop-blur-md flex items-center justify-between">
       <div class="flex items-center gap-3">
         <a href="/" class="flex h-9 w-9 items-center justify-center rounded-xl border border-amber-500/40 bg-stone-900 text-amber-300 hover:bg-amber-950 transition-all text-xs" title="Вэбсайт руу буцах">
           ←
         </a>
         <div>
           <div class="flex items-center gap-2">
-            <span class="text-sm">✦</span>
+            <span class="text-sm text-amber-400">✦</span>
             <h1 class="font-serif text-sm sm:text-base font-bold tracking-wider text-amber-200 uppercase">
               МОНГОЛ ЗУРХАЙ · УДИРДЛАГЫН САМБАР
             </h1>
           </div>
-          <p class="text-[10px] text-stone-400">Бодит зочид, QPay төлбөр & Орлогын удирдлага</p>
+          <div class="flex items-center gap-2 mt-0.5">
+            <span id="qpayStatusBadge" class="inline-flex items-center gap-1 rounded-full border border-stone-800 bg-stone-900/80 px-2 py-0.5 text-[9px] font-semibold text-stone-300">
+              <span class="h-1.5 w-1.5 rounded-full bg-stone-500"></span> QPay Холболт шалгаж байна
+            </span>
+          </div>
         </div>
       </div>
 
-      <div class="flex items-center gap-3">
-        <div class="hidden sm:flex items-center gap-2 rounded-full border border-stone-800 bg-black/60 px-3 py-1 text-xs text-stone-300">
+      <div class="flex items-center gap-2 sm:gap-3">
+        <div class="hidden md:flex items-center gap-2 rounded-full border border-stone-800 bg-black/60 px-3 py-1 text-xs text-stone-300">
           <span class="h-2 w-2 rounded-full bg-emerald-400 animate-ping"></span>
           <span id="liveTime">00:00:00</span>
         </div>
         <button 
+          onclick="seedTestTransaction()" 
+          class="flex items-center gap-1 rounded-xl border border-amber-500/60 bg-amber-950/60 px-3 py-1.5 text-xs font-bold text-amber-200 hover:bg-amber-900 transition-all cursor-pointer shadow-md"
+          title="Тест гүйлгээ үүсгэж харах"
+        >
+          <span>🧪</span> <span class="hidden sm:inline">Тест Гүйлгээ Нэмэх</span>
+        </button>
+        <button 
           onclick="fetchData()" 
-          class="flex items-center gap-1.5 rounded-xl border border-amber-500/40 bg-amber-950/40 px-3 py-1.5 text-xs font-bold text-amber-300 hover:bg-amber-900/60 transition-all cursor-pointer"
+          class="flex items-center gap-1.5 rounded-xl border border-stone-700 bg-stone-900 px-3 py-1.5 text-xs font-bold text-stone-200 hover:bg-stone-800 transition-all cursor-pointer"
         >
           <span>⟳</span> <span class="hidden sm:inline">Шинэчлэх</span>
         </button>
@@ -205,7 +203,6 @@
             </div>
           </div>
           
-          <!-- Chart Container -->
           <div id="chartContainer" class="h-48 flex items-end gap-2 pt-6 pb-2 border-b border-stone-800 overflow-x-auto custom-scrollbar">
             <!-- Bars rendered via JS -->
           </div>
@@ -265,7 +262,6 @@
           </div>
         </div>
 
-        <!-- Table Responsive -->
         <div class="overflow-x-auto custom-scrollbar rounded-2xl border border-stone-800/80">
           <table class="w-full text-left text-xs text-stone-300">
             <thead class="bg-black/60 font-serif text-[11px] font-bold text-amber-400 uppercase border-b border-stone-800">
@@ -282,7 +278,7 @@
             </thead>
             <tbody id="txTableBody" class="divide-y divide-stone-800/60">
               <tr>
-                <td colspan="8" class="p-6 text-center text-stone-500">Мэдээлэл ачаалж байна...</td>
+                <td colspan="8" class="p-8 text-center text-stone-500">Мэдээлэл ачаалж байна...</td>
               </tr>
             </tbody>
           </table>
@@ -385,9 +381,54 @@
       }
     }
 
+    async function seedTestTransaction() {
+      if (!currentAuthToken) return;
+      const names = ['Эрдэнэ-Очир', 'Бат-Эрдэнэ', 'Анужин', 'Тэмүүлэн', 'Хулан', 'Мөнх-Эрдэнэ'];
+      const worries = ['wealth', 'love', 'career', 'protection'];
+      const randName = names[Math.floor(Math.random() * names.length)];
+      const randWorry = worries[Math.floor(Math.random() * worries.length)];
+
+      try {
+        const res = await fetch('/api/analytics/stats', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${currentAuthToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            action: 'seed_test_transaction',
+            profile: {
+              name: randName,
+              birthDate: '1996-05-18',
+              gender: Math.random() > 0.5 ? 'male' : 'female',
+              worry: randWorry
+            }
+          })
+        });
+
+        if (res.ok) {
+          await fetchData();
+        }
+      } catch (err) {
+        console.error('Seed error:', err);
+      }
+    }
+
     function renderDashboard(data) {
       globalStats = data;
       const m = data.metrics || {};
+
+      // QPay connection status
+      const qBadge = document.getElementById('qpayStatusBadge');
+      if (qBadge) {
+        if (data.isQPayLive) {
+          qBadge.className = 'inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-950/60 px-2.5 py-0.5 text-[10px] font-bold text-emerald-300';
+          qBadge.innerHTML = '<span class="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping"></span> QPay Мерчант Бодитоор Холбогдсон (Live)';
+        } else {
+          qBadge.className = 'inline-flex items-center gap-1.5 rounded-full border border-amber-500/40 bg-amber-950/50 px-2.5 py-0.5 text-[10px] font-bold text-amber-300';
+          qBadge.innerHTML = '<span class="h-1.5 w-1.5 rounded-full bg-amber-400"></span> QPay Тест Горим (Тест төлбөрүүд бүртгэгдэнэ)';
+        }
+      }
 
       // KPI Numbers
       document.getElementById('kpiTotalRevenue').innerText = `₮${(m.totalRevenue || 0).toLocaleString('mn-MN')}`;
@@ -436,7 +477,6 @@
         const barGroup = document.createElement('div');
         barGroup.className = 'flex-1 flex flex-col items-center justify-end h-full gap-1 group relative min-w-[20px]';
 
-        // Tooltip
         const tooltip = `
           <div class="absolute -top-12 left-1/2 -translate-x-1/2 hidden group-hover:flex flex-col items-center bg-black/95 border border-amber-500/60 rounded-lg px-2 py-1 text-[10px] text-white shadow-xl z-20 whitespace-nowrap">
             <span class="font-bold text-amber-300">₮${(d.revenue || 0).toLocaleString()}</span>
@@ -563,7 +603,6 @@
         return;
       }
 
-      // UTF-8 BOM for Excel Mongolian support
       let csv = '\uFEFF';
       csv += 'Огноо,Нэр,Төрсөн огноо,Хүйс,Зовоосон асуудал,Нэхэмжлэх ID,Төлөв,Дүн (MNT)\n';
 
@@ -592,7 +631,6 @@
       URL.revokeObjectURL(url);
     }
 
-    // Auto refresh every 25 seconds
     setInterval(() => {
       if (currentAuthToken) {
         fetchData();
