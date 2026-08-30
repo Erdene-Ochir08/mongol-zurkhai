@@ -90,11 +90,11 @@
           <div class="flex items-center gap-2">
             <span class="text-sm text-amber-400">✦</span>
             <h1 class="font-serif text-sm sm:text-base font-bold tracking-wider text-amber-200 uppercase">
-              МОНГОЛ ЗУРХАЙ · УДИРДЛАГЫН САМБАР
+              МОНГОЛ ЗУРХАЙ · БОДИТ УДИРДЛАГЫН САМБАР
             </h1>
           </div>
           <div class="flex items-center gap-2 mt-0.5">
-            <span id="qpayStatusBadge" class="inline-flex items-center gap-1 rounded-full border border-stone-800 bg-stone-900/80 px-2 py-0.5 text-[9px] font-semibold text-stone-300">
+            <span id="qpayStatusBadge" class="inline-flex items-center gap-1.5 rounded-full border border-stone-800 bg-stone-900/80 px-2.5 py-0.5 text-[10px] font-semibold text-stone-300">
               <span class="h-1.5 w-1.5 rounded-full bg-stone-500"></span> QPay Холболт шалгаж байна
             </span>
           </div>
@@ -107,17 +107,10 @@
           <span id="liveTime">00:00:00</span>
         </div>
         <button 
-          onclick="seedTestTransaction()" 
-          class="flex items-center gap-1 rounded-xl border border-amber-500/60 bg-amber-950/60 px-3 py-1.5 text-xs font-bold text-amber-200 hover:bg-amber-900 transition-all cursor-pointer shadow-md"
-          title="Тест гүйлгээ үүсгэж харах"
-        >
-          <span>🧪</span> <span class="hidden sm:inline">Тест Гүйлгээ Нэмэх</span>
-        </button>
-        <button 
           onclick="fetchData()" 
-          class="flex items-center gap-1.5 rounded-xl border border-stone-700 bg-stone-900 px-3 py-1.5 text-xs font-bold text-stone-200 hover:bg-stone-800 transition-all cursor-pointer"
+          class="flex items-center gap-1.5 rounded-xl border border-amber-500/40 bg-amber-950/40 px-3.5 py-1.5 text-xs font-bold text-amber-300 hover:bg-amber-900/60 transition-all cursor-pointer shadow-md"
         >
-          <span>⟳</span> <span class="hidden sm:inline">Шинэчлэх</span>
+          <span>⟳</span> <span>Шинэчлэх</span>
         </button>
         <button 
           onclick="handleLogout()" 
@@ -137,7 +130,7 @@
         <!-- Total Revenue -->
         <div class="relative overflow-hidden rounded-3xl border border-amber-500/40 bg-gradient-to-b from-[#16120e] to-[#0c0a08] p-5 shadow-xl">
           <div class="flex items-center justify-between text-stone-400">
-            <span class="text-xs font-bold tracking-wider uppercase text-amber-400/90">Нийт Орлого (Total Gross)</span>
+            <span class="text-xs font-bold tracking-wider uppercase text-amber-400/90">Нийт Бодит Орлого</span>
             <span class="text-lg">💰</span>
           </div>
           <div class="mt-3 flex items-baseline gap-2">
@@ -150,7 +143,7 @@
         <!-- Today Revenue -->
         <div class="relative overflow-hidden rounded-3xl border border-emerald-500/40 bg-gradient-to-b from-[#0e1612] to-[#080c0a] p-5 shadow-xl">
           <div class="flex items-center justify-between text-stone-400">
-            <span class="text-xs font-bold tracking-wider uppercase text-emerald-400/90">Өнөөдрийн Орлого (Today)</span>
+            <span class="text-xs font-bold tracking-wider uppercase text-emerald-400/90">Өнөөдрийн Орлого</span>
             <span class="text-lg">📈</span>
           </div>
           <div class="mt-3 flex items-baseline gap-2">
@@ -176,7 +169,7 @@
         <!-- Conversion Rate -->
         <div class="relative overflow-hidden rounded-3xl border border-stone-800 bg-[#0e0e14] p-5 shadow-xl">
           <div class="flex items-center justify-between text-stone-400">
-            <span class="text-xs font-bold tracking-wider uppercase text-stone-300">Хөрвүүлэлтийн Хувь (Conv. Rate)</span>
+            <span class="text-xs font-bold tracking-wider uppercase text-stone-300">Хөрвүүлэлтийн Хувь</span>
             <span class="text-lg">🎯</span>
           </div>
           <div class="mt-3 flex items-baseline gap-2">
@@ -242,7 +235,7 @@
             <h3 class="font-serif text-base font-bold text-amber-200 uppercase flex items-center gap-2">
               <span>🧾</span> Бодит Гүйлгээ & Төлбөрийн Түүх
             </h3>
-            <p class="text-xs text-stone-400">QPay-ээр үүсгэгдсэн болон төлөгдсөн сүүлийн бүртгэлүүд</p>
+            <p class="text-xs text-stone-400">QPay-ээр үүсгэгдсэн болон төлөгдсөн бодит гүйлгээнүүд</p>
           </div>
 
           <div class="flex items-center gap-2">
@@ -278,7 +271,7 @@
             </thead>
             <tbody id="txTableBody" class="divide-y divide-stone-800/60">
               <tr>
-                <td colspan="8" class="p-8 text-center text-stone-500">Мэдээлэл ачаалж байна...</td>
+                <td colspan="8" class="p-8 text-center text-stone-500">Одоогоор бодит гүйлгээ хийгдээгүй байна.</td>
               </tr>
             </tbody>
           </table>
@@ -290,7 +283,7 @@
 
     <!-- FOOTER -->
     <footer class="border-t border-stone-900 bg-black/40 px-8 py-4 text-center text-xs text-stone-500">
-      Монгол Зурхай · Бүх эрх хуулиар хамгаалагдсан &copy; 2026. Real-time Executive Telemetry.
+      Монгол Зурхай · Бүх эрх хуулиар хамгаалагдсан &copy; 2026. Real-time Production Telemetry.
     </footer>
 
   </div>
@@ -301,14 +294,12 @@
     let globalStats = null;
     let allTransactions = [];
 
-    // Live clock
     setInterval(() => {
       const now = new Date();
       const el = document.getElementById('liveTime');
       if (el) el.innerText = now.toLocaleTimeString('mn-MN');
     }, 1000);
 
-    // Check saved session
     window.addEventListener('DOMContentLoaded', () => {
       if (currentAuthToken) {
         fetchData();
@@ -381,44 +372,10 @@
       }
     }
 
-    async function seedTestTransaction() {
-      if (!currentAuthToken) return;
-      const names = ['Эрдэнэ-Очир', 'Бат-Эрдэнэ', 'Анужин', 'Тэмүүлэн', 'Хулан', 'Мөнх-Эрдэнэ'];
-      const worries = ['wealth', 'love', 'career', 'protection'];
-      const randName = names[Math.floor(Math.random() * names.length)];
-      const randWorry = worries[Math.floor(Math.random() * worries.length)];
-
-      try {
-        const res = await fetch('/api/analytics/stats', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${currentAuthToken}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            action: 'seed_test_transaction',
-            profile: {
-              name: randName,
-              birthDate: '1996-05-18',
-              gender: Math.random() > 0.5 ? 'male' : 'female',
-              worry: randWorry
-            }
-          })
-        });
-
-        if (res.ok) {
-          await fetchData();
-        }
-      } catch (err) {
-        console.error('Seed error:', err);
-      }
-    }
-
     function renderDashboard(data) {
       globalStats = data;
       const m = data.metrics || {};
 
-      // QPay connection status
       const qBadge = document.getElementById('qpayStatusBadge');
       if (qBadge) {
         if (data.isQPayLive) {
@@ -426,13 +383,12 @@
           qBadge.innerHTML = '<span class="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping"></span> QPay Мерчант Бодитоор Холбогдсон (Live)';
         } else {
           qBadge.className = 'inline-flex items-center gap-1.5 rounded-full border border-amber-500/40 bg-amber-950/50 px-2.5 py-0.5 text-[10px] font-bold text-amber-300';
-          qBadge.innerHTML = '<span class="h-1.5 w-1.5 rounded-full bg-amber-400"></span> QPay Тест Горим (Тест төлбөрүүд бүртгэгдэнэ)';
+          qBadge.innerHTML = '<span class="h-1.5 w-1.5 rounded-full bg-amber-400"></span> QPay Холболт Бэлэн (Бодит гүйлгээ хүлээгдэж байна)';
         }
       }
 
-      // KPI Numbers
       document.getElementById('kpiTotalRevenue').innerText = `₮${(m.totalRevenue || 0).toLocaleString('mn-MN')}`;
-      document.getElementById('kpiPaidCount').innerText = `${m.paidCount || 0} амжилттай төлбөр (9,900₮)`;
+      document.getElementById('kpiPaidCount').innerText = `${m.paidCount || 0} бодит төлбөр (9,900₮)`;
       
       document.getElementById('kpiTodayRevenue').innerText = `₮${(m.todayRevenue || 0).toLocaleString('mn-MN')}`;
       document.getElementById('kpiTodayPaid').innerText = `Өнөөдөр ${m.todayPaidCount || Math.floor((m.todayRevenue || 0)/9900)} хүн төлсөн`;
@@ -444,12 +400,10 @@
       document.getElementById('kpiConversionRate').innerText = m.conversionRate || '0.0%';
       document.getElementById('kpiPendingInvoices').innerText = `${m.pendingInvoices || 0} хүлээгдэж буй нэхэмжлэх`;
 
-      // Render Charts
       renderDailyChart(data.dailyChart || []);
       renderWorryBreakdown(data.worryDistribution || []);
       renderDeviceBreakdown(data.deviceDistribution || []);
 
-      // Render Transactions
       allTransactions = data.recentTransactions || [];
       renderTransactionsTable(allTransactions);
     }
@@ -546,7 +500,7 @@
       tbody.innerHTML = '';
 
       if (txs.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-stone-500">Одоогоор гүйлгээний бүртгэл байхгүй байна.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-stone-500">Одоогоор бодит гүйлгээ хийгдээгүй байна.</td></tr>`;
         return;
       }
 

@@ -40,20 +40,6 @@ export default async function handler(req, res) {
     });
   }
 
-  // Handle action to seed or sync test data if requested
-  if (req.method === 'POST' && req.body && req.body.action === 'seed_test_transaction') {
-    const mockId = `QPAY-INV-${Math.floor(100000 + Math.random() * 900000)}`;
-    const tx = recordTransaction({
-      invoice_id: mockId,
-      amount: 9900,
-      status: 'PAID',
-      profile: req.body.profile || { name: 'Эрдэнэ-Очир', birthDate: '1998-06-15', gender: 'male', worry: 'wealth' },
-      isMock: true
-    });
-    recordVisit({ ip: '127.0.0.1', userAgent: 'Mobile Safari', path: '/reader' });
-    return sendJson(res, 200, { success: true, message: 'Тест гүйлгээ амжилттай үүслээ.', transaction: tx });
-  }
-
   try {
     const raw = getStats();
     const now = new Date();
@@ -62,7 +48,7 @@ export default async function handler(req, res) {
     let visits = [...(raw.visits || [])];
     let transactions = [...(raw.transactions || [])];
 
-    // Try fetching live payments from QPay if password is set
+    // Query real QPay bank server if live merchant credentials are set
     let isQPayLive = false;
     if (process.env.QPAY_PASSWORD) {
       try {
@@ -103,7 +89,7 @@ export default async function handler(req, res) {
       }
     }
 
-    // Filter paid transactions
+    // Filter real paid transactions
     const paidTransactions = transactions.filter(t => t.status === 'PAID');
     const todayPaidTransactions = paidTransactions.filter(t => t.date === todayStr || (t.paidAt && t.paidAt.startsWith(todayStr)));
 
@@ -115,7 +101,7 @@ export default async function handler(req, res) {
 
     const conversionRate = totalVisitors > 0 ? ((paidTransactions.length / totalVisitors) * 100).toFixed(1) : (paidTransactions.length > 0 ? '100.0' : '0.0');
 
-    // Daily breakdown for last 14 days
+    // Daily chart for last 14 days
     const dailyMap = {};
     for (let i = 13; i >= 0; i--) {
       const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
@@ -139,7 +125,6 @@ export default async function handler(req, res) {
 
     const dailyChart = Object.values(dailyMap);
 
-    // Worry Categories breakdown
     const worryMap = {
       wealth: { label: 'Эд хөрөнгө & Алтан үе', count: 0 },
       love: { label: 'Хайр дурлал & Ивээл хань', count: 0 },
@@ -156,7 +141,6 @@ export default async function handler(req, res) {
       }
     });
 
-    // Device breakdown
     let mobileCount = 0;
     let desktopCount = 0;
     visits.forEach(v => {
